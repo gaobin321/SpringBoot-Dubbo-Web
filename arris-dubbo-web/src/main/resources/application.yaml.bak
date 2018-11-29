@@ -1,0 +1,41 @@
+#
+# server
+#
+server:
+  port: 8085
+  error:
+    whitelabel:
+      enabled: false
+  tomcat:
+    max-threads: 1000
+    accept-count: 1200
+    max-connections: 20000
+    min-spare-threads: 25
+    connection-timeout: 2000
+
+spring:
+  application:
+    name:  wenba-arris-dubbo-web
+  dubbo:
+    application:
+      id: wenba-arris-rpc-server
+      name: wenba-arris-rpc-server
+    registry:
+      id: my-registry
+    protocol:
+      name: dubbo
+      port: 20880
+#
+# logging config file location
+#
+logging:
+#  config: classpath:conf/logging/logback-spring.xml
+  path: target/logs
+  level:
+    default: INFO
+    commons: DEBUG
+    mybatis: DEBUG
+
+
+app:
+  id: wenba-arris-application
