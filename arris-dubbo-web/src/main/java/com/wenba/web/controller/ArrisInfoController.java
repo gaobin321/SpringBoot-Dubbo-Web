@@ -1,7 +1,7 @@
 package com.wenba.web.controller;
 
 import com.alibaba.dubbo.config.annotation.Reference;
-import com.wenba.api.ArrisServiceFacade;
+import com.wenba.api.ArrisInfoServiceFacade;
 import com.wenba.common.domain.ArrisInfo;
 import com.wenba.common.utils.base.BaseResult;
 import com.wenba.common.utils.base.DataResult;
@@ -20,20 +20,20 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/config/arris")
-public class ArrisController {
+public class ArrisInfoController {
 
     @Reference(
             application = "${dubbo.application.id}",
             group = "${dubbo.consumer.group}"
     )
 
-    private ArrisServiceFacade arrisServiceFacade;
+    private ArrisInfoServiceFacade arrisServiceFacade;
 
 
     /**
      *  查询表达式列表
      */
-    @RequestMapping(value = "/selArrisInfoList", method = RequestMethod.POST)
+    @RequestMapping(value = "/selArrisInfoList", method = RequestMethod.GET)
     public PageResult<ArrisInfo> selArrisInfoList(ArrisInfo ai){
 
         log.info("selArrisInfoList 输入参数: " + ai.toString());
@@ -41,8 +41,8 @@ public class ArrisController {
 
         //返回数据
         PageResult<ArrisInfo> dataResult = new PageResult<>();
-        dataResult.setPage(ai.getPageNum());
-        ai.setPageNum(ai.getPageNum() - 1);
+        dataResult.setPage(ai.getPageNumber());
+        ai.setPageNumber(ai.getPageNumber() - 1);
         dataResult.setSize(ai.getPageSize());
 
         //获取表达式列表总记录数量
@@ -77,7 +77,7 @@ public class ArrisController {
     @RequestMapping(value = "/insArrisInfoList", method = RequestMethod.POST)
     public DataResult insArrisInfoList(@RequestBody List<ArrisInfo> aiList){
 
-        log.info("creArrisInfoList 输入参数: " + aiList.toString());
+        log.info("insArrisInfoList 输入参数: " + aiList.toString());
         long startTime = System.currentTimeMillis();
 
         //返回数据
@@ -89,6 +89,8 @@ public class ArrisController {
             for(ArrisInfo ai : aiList) {
                 BaseResult bResult = new BaseResult();
                 map = new HashMap<>();
+                //表达式的当前发布版本默认从1开始
+                ai.setArrisVers(1);
                 //检验表达式版本和表达式名称
                 int i = arrisServiceFacade.checkArrisVN(ai);
                 if(i == 0) {
@@ -107,7 +109,7 @@ public class ArrisController {
                     }
                 }else{
                     bResult.setCode(-1);
-                    bResult.setMsg("该表达式版本和名称存在");
+                    bResult.setMsg("该表达式版本和名称已存在");
                     map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
                     list.add(map);
                 }
@@ -122,8 +124,8 @@ public class ArrisController {
         result.setData(list);
 
         long endTime = System.currentTimeMillis();
-        log.info("creArrisInfoList 输出参数: " + result.toString());
-        log.info("creArrisInfoList cost time:{} ms", endTime - startTime);
+        log.info("insArrisInfoList 输出参数: " + result.toString());
+        log.info("insArrisInfoList cost time:{} ms", endTime - startTime);
         return result;
     }
 
@@ -147,7 +149,7 @@ public class ArrisController {
                 BaseResult bResult = new BaseResult();
                 map = new HashMap<>();
                 //检验表达式版本和表达式名称
-                int i = arrisServiceFacade.checkArrisVN(ai);
+                int i = arrisServiceFacade.checkArrisID(ai.getId());
                 if(i > 0) {
                     //更新表达式
                     int j = arrisServiceFacade.updArrisInfoList(ai);
@@ -195,34 +197,34 @@ public class ArrisController {
         long startTime = System.currentTimeMillis();
 
         //返回数据
-        DataResult<List<Map<String,BaseResult>>> result = new DataResult<>();
-        List<Map<String,BaseResult>> list = new ArrayList<>();
-        Map<String,BaseResult> map = null;
+        DataResult<List<Map<Integer,BaseResult>>> result = new DataResult<>();
+        List<Map<Integer,BaseResult>> list = new ArrayList<>();
+        Map<Integer,BaseResult> map = null;
 
         if(null != aiList && aiList.size() > 0) {
             for(ArrisInfo ai : aiList) {
                 BaseResult bResult = new BaseResult();
                 map = new HashMap<>();
                 //检验表达式版本和表达式名称
-                int i = arrisServiceFacade.checkArrisVN(ai);
+                int i = arrisServiceFacade.checkArrisID(ai.getId());
                 if(i > 0) {
                     //删除表达式
                     int j = arrisServiceFacade.delArrisInfoList(ai);
                     if(j > 0) {
                         bResult.setCode(1);
                         bResult.setMsg("success");
-                        map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
+                        map.put(ai.getId(),bResult);
                         list.add(map);
                     }else{
                         bResult.setCode(-1);
                         bResult.setMsg("fail");
-                        map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
+                        map.put(ai.getId(),bResult);
                         list.add(map);
                     }
                 }else{
                     bResult.setCode(-1);
                     bResult.setMsg("该表达式版本和名称不存在");
-                    map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
+                    map.put(ai.getId(),bResult);
                     list.add(map);
                 }
             }
@@ -241,61 +243,5 @@ public class ArrisController {
         return result;
     }
 
-
-    /**
-     *  调用表达式
-     */
-    @RequestMapping(value = "/transArrisInfoList", method = RequestMethod.POST)
-    public DataResult transArrisInfoList(@RequestBody List<ArrisInfo> aiList){
-
-        log.info("transArrisInfoList 输入参数: " + aiList.toString());
-        long startTime = System.currentTimeMillis();
-
-        //返回数据
-        DataResult<List<Map<String,BaseResult>>> result = new DataResult<>();
-        List<Map<String,BaseResult>> list = new ArrayList<>();
-        Map<String,BaseResult> map = null;
-
-        if(null != aiList && aiList.size() > 0) {
-            for(ArrisInfo ai : aiList) {
-                BaseResult bResult = new BaseResult();
-                map = new HashMap<>();
-                //检验表达式版本和表达式名称
-                int i = arrisServiceFacade.checkArrisVN(ai);
-                if(i > 0) {
-                    //调用表达式
-                    int j = arrisServiceFacade.transArrisInfoList(ai);
-                    if(j > 0) {
-                        bResult.setCode(1);
-                        bResult.setMsg("success");
-                        map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
-                        list.add(map);
-                    }else{
-                        bResult.setCode(-1);
-                        bResult.setMsg("fail");
-                        map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
-                        list.add(map);
-                    }
-                }else{
-                    bResult.setCode(-1);
-                    bResult.setMsg("该表达式版本和名称不存在");
-                    map.put(ai.getArrisName() + "-" + ai.getArrisVers(),bResult);
-                    list.add(map);
-                }
-            }
-        }else {
-            result.setCode(-4);
-            result.setMsg("参数为空");
-        }
-
-        result.setCode(1);
-        result.setMsg("success");
-        result.setData(list);
-
-        long endTime = System.currentTimeMillis();
-        log.info("transArrisInfoList 输出参数: " + result.toString());
-        log.info("transArrisInfoList cost time:{} ms", endTime - startTime);
-        return result;
-    }
 
 }
